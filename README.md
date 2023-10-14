@@ -3,10 +3,10 @@
 
 ### Parameters
 
- "-h | --help : see this help"
- "-d | --disable : disable fn_lock (permanent)"
- "-e | --enable : enable fn_lock (permanent)"
- "-t : temporary disable fn_lock"
+"-h | --help : see this help"
+"-d | --disable : disable fn_lock (permanent)"
+"-e | --enable : enable fn_lock (permanent)"
+"-t : temporary disable fn_lock"
 
 ### Supported Devices
 
