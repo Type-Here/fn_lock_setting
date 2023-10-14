@@ -32,7 +32,7 @@ set_variables(){
     case "$MNF" in
         *"ASUS"*)
         MNFCTR=asus_wmi;
-        CGFILEP=/etc/modprobe.d/alsa-base.conf;
+        CGFILEP=/etc/modprobe.d/set_fn_lock.conf;
         FNLOCK=fnlock_default;
         E="\n** $MNFCTR $FNLOCK";
         ;;
@@ -75,21 +75,32 @@ change_fn(){
     fi
 
     if [ -f /sys/module/$MNFCTR/parameters/$FNLOCK ]; then
-        I="INSTALLED"
-        if ! grep -q "$FNLOCK=N" $CGFILEP ; then
+        echo "Module Found. Checking for conf files..."
+        
+        #Option Setting to export
+        OPT="options $MNFCTR ${FNLOCK}="
+        
+        #if ! grep -q "$FNLOCK=N" $CGFILEP ; then
         #if [ $? -eq 0 ]; then
-            echo -e "$E $I ALREADY$F"
-            exit 0
+        #    echo -e "$E INSTALLED ALREADY$F"
+        #    exit 0
+        #fi
+        if [ -f "$CGFILEP" ]; then
+            echo "Configuration File Found. Overriding..."
+            sed "/^${OPT}=/{h;s/=.*/=${VALUE}/};\${x;/^$/{s//${OPT}=${VALUE}/;H};x}" "${CGFILEP}"
+        else
+            echo "Configuration File NOT Found. Creating and Setting..."
+            sudo touch "$CGFILEP" 
+            echo -e "#Toggle $FNLOCK at boot (Y/N)\n${OPT}=${VALUE}\n" | sudo tee -a "$CGFILEP"
+            echo -e "\nPlease WAIT ...\n"
+            sudo update-initramfs -u -k all
+            echo -e "$E INSTALLED NOW $F"
+            exit 0;
         fi
-        OPT="options $MNFCTR ${FNLOCK}=${VALUE}"
-        echo -e "#Toggle $FNLOCK at boot (Y/N)\n${OPT}\n" | sudo tee -a $CGFILEP
-        echo -e "\nPlease WAIT ...\n"
-        sudo update-initramfs -u -k all
-        echo -e "$E $I NOW $F"
-        exit 0
     fi
 
-    echo -e "$E NOT FOUND$F"
+    echo -e "Module Param: $E NOT FOUND$F"
+    echo "Unable to Proceed. Exiting..."
 
     exit 1
 }
