@@ -4,6 +4,8 @@
 # Original from Mint Forum: https://forums.linuxmint.com/viewtopic.php?t=368164
 # Mod by type-here
 
+# It NEEDS SUDO permission!
+
 FNLOCK="";
 MNFCTR="";
 CGFILEP="";
@@ -13,6 +15,7 @@ F=" **\n"
 VALUE=N
 
 set_variables(){
+    #Find if Linux or Mac Machines with uname. Others not supported
     unameOut="$(uname -s)"
     case "${unameOut}" in
         Linux*)     MACHINE=Linux;;
@@ -23,12 +26,14 @@ set_variables(){
         *)          MACHINE="UNKNOWN:${unameOut}"
     esac
 
+    # Set MNF Var = Manufacturer
     case "$MACHINE" in
         Linux*) MNF=$(sudo dmidecode -s system-manufacturer);;
         Darwin*) MNF=Apple;;
         *) echo " Script not supported on your machine. Exiting... "; exit 1;;
     esac
     
+    # Set Variable Based on Manufacturer
     case "$MNF" in
         *"ASUS"*)
         MNFCTR=asus_wmi;
@@ -46,6 +51,7 @@ set_variables(){
     esac
 }
 
+# Show Help Menu
 show_help(){
     echo "-h | --help : see this help"
     echo "-d | --disable : disable fn_lock (permanent)"
@@ -53,10 +59,16 @@ show_help(){
     echo "-t : temporary disable fn_lock"
 }
 
+# Set Temporary changes. Only OFF
 temporary_change(){
-    echo 0 | sudo tee /sys/module/"${MNFCTR}"/parameters/"${FNLOCK}"
+    case $MNF in 
+        *"Apple"*) VALUE=0;;
+        *) VALUE=N;;
+    esac   
+    echo "${VALUE}" | sudo tee /sys/module/"${MNFCTR}"/parameters/"${FNLOCK}"
 }
 
+# Core Function
 change_fn(){
     #Set Paths and Variables based on Manufacturer
     set_variables;
@@ -80,15 +92,16 @@ change_fn(){
         #Option Setting to export
         OPT="options $MNFCTR ${FNLOCK}="
         
-        #if ! grep -q "$FNLOCK=N" $CGFILEP ; then
-        #if [ $? -eq 0 ]; then
-        #    echo -e "$E INSTALLED ALREADY$F"
-        #    exit 0
-        #fi
+        # Update if Config File Already Exists
         if [ -f "$CGFILEP" ]; then
             echo "Configuration File Found. Overriding..."
-            sed "/^${OPT}=/{h;s/=.*/=${VALUE}/};\${x;/^$/{s//${OPT}=${VALUE}/;H};x}" "${CGFILEP}"
+            sudo sed "/^${OPT}=/{h;s/=.*/=${VALUE}/};\${x;/^$/{s//${OPT}=${VALUE}/;H};x}" "${CGFILEP}"
+            echo -e "\nPlease WAIT ...\n"
+            sudo update-initramfs -u -k all
+            echo -e "$E UPDATED NOW $F"
+            exit 0;
         else
+        # Creating a New Conf File
             echo "Configuration File NOT Found. Creating and Setting..."
             sudo touch "$CGFILEP" 
             echo -e "#Toggle $FNLOCK at boot (Y/N)\n${OPT}=${VALUE}\n" | sudo tee -a "$CGFILEP"
@@ -98,7 +111,8 @@ change_fn(){
             exit 0;
         fi
     fi
-
+    
+    # If param is not found in /sys/module we can't do anything yet. Exits
     echo -e "Module Param: $E NOT FOUND$F"
     echo "Unable to Proceed. Exiting..."
 
@@ -106,7 +120,9 @@ change_fn(){
 }
 
 
-#MAIN
+#MAIN 
+
+# Read Parameters 
 
 if [ $# -eq 0 ]; then
     read -r -p "No parameters used. Default choice is to DISABLE Fn_Lock. Continue (Y/n)?" response
