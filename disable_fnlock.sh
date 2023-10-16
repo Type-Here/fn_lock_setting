@@ -56,16 +56,17 @@ show_help(){
     echo "-h | --help : see this help"
     echo "-d | --disable : disable fn_lock (permanent)"
     echo "-e | --enable : enable fn_lock (permanent)"
-    echo "-t : temporary disable fn_lock"
+    echo "-t : temporary disable fn_lock (Not reccomended, still buggy)"
 }
 
-# Set Temporary changes. Only OFF
+# Set Temporary changes. Only OFF. You should manually update module
 temporary_change(){
     case $MNF in 
         *"Apple"*) VALUE=0;;
         *) VALUE=N;;
     esac   
     echo "${VALUE}" | sudo tee /sys/module/"${MNFCTR}"/parameters/"${FNLOCK}"
+    echo "Temporary change made. You have to reload module manually."
 }
 
 # Core Function
