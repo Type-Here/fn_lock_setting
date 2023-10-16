@@ -90,15 +90,28 @@ change_fn(){
         echo "Module Found. Checking for conf files..."
         
         #Option Setting to export
-        OPT="options $MNFCTR ${FNLOCK}="
+        OPT="options $MNFCTR ${FNLOCK}"
         
         # Update if Config File Already Exists
         if [ -f "$CGFILEP" ]; then
             echo "Configuration File Found. Overriding..."
-            sudo sed "/^${OPT}=/{h;s/=.*/=${VALUE}/};\${x;/^$/{s//${OPT}=${VALUE}/;H};x}" "${CGFILEP}"
+
+            # Alternative solution (doesn't work yet, but should)
+            #sudo sed "/^${OPT}=/{h;s/=.*/=${VALUE}/};\${x;/^$/{s//${OPT}=${VALUE}/;H};x}" "${CGFILEP}"
+
+            # Partially works but it doesn't substitute value.
+            #sudo awk -i inplace -v opt="$OPT" -v value="$VALUE" 'gsub("^" opt "=", opt "=" value)' "$CGFILEP"
+
+            #WORKS
+            sudo sed -i -e "/^${OPT}=/s/.*/${OPT}=${VALUE}/" "$CGFILEP"
+
             echo -e "\nPlease WAIT ...\n"
-            sudo update-initramfs -u -k all
+
+            # Not supported by all linux distros, better reboot
+            #sudo update-initramfs -u -k all
+
             echo -e "$E UPDATED NOW $F"
+            echo " PLEASE REBOOT. "
             exit 0;
         else
         # Creating a New Conf File
@@ -106,8 +119,12 @@ change_fn(){
             sudo touch "$CGFILEP" 
             echo -e "#Toggle $FNLOCK at boot (Y/N)\n${OPT}=${VALUE}\n" | sudo tee -a "$CGFILEP"
             echo -e "\nPlease WAIT ...\n"
-            sudo update-initramfs -u -k all
+
+            # Not supported by all linux distros, better reboot
+            #sudo update-initramfs -u -k all
+
             echo -e "$E INSTALLED NOW $F"
+            echo " PLEASE REBOOT. "
             exit 0;
         fi
     fi
