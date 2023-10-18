@@ -10,9 +10,9 @@
 
 ### Supported Devices
 
-- Apple MacOS (?) -- NOT TESTED
 - Apple Keyboard -- Not Tested personally, but working in original source 
-- Asus
+- Keychron Keyboards and others identified as hid_apple (from source)
+- Asus Devices working with asus_wmi module
 - (Others soon to come.. Submit your Code/Infos!)
 
 ### Thanks
