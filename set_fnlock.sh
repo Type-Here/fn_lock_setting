@@ -14,6 +14,19 @@ E="\n** $MNFCTR $FNLOCK";
 F=" **\n"
 VALUE=N
 
+launch_warning(){
+    read -r -p "This should NOT work on your machine and it is NOT tested for it. Continue anyways (y/N)?" response
+    case "$response" in
+        [yY][eE][sS]|[yY])
+            echo "Program will proceed. Be careful."
+            ;;
+        *)
+            echo "Good Guy. Exiting..."
+            exit 0;
+            ;;
+    esac
+}
+
 set_variables(){
     #Find if Linux or Mac Machines with uname. Others not supported
     unameOut="$(uname -s)"
@@ -29,7 +42,7 @@ set_variables(){
     # Set MNF Var = Manufacturer
     case "$MACHINE" in
         Linux*) MNF=$(sudo dmidecode -s system-manufacturer);;
-        Darwin*) MNF=Apple;;
+        Darwin*) MNF=Apple; launch_warning;;
         *) echo " Script not supported on your machine. Exiting... "; exit 1;;
     esac
     
@@ -53,10 +66,12 @@ set_variables(){
 
 # Show Help Menu
 show_help(){
+    echo -e "\nSet Fn kernel module parameter. \nApple devices have 0,1,2 modes. Asus On-Off."
+    echo -e "More info: https://github.com/Type-Here/fn_lock_setting \n"
     echo "-h | --help : see this help"
     echo "-d | --disable : disable fn_lock (permanent)"
     echo "-e | --enable : enable fn_lock (permanent)"
-    echo "-t : temporary disable fn_lock (Not reccomended, still buggy)"
+    echo -e "-t | --temp : temporary disable fn_lock (Not reccomended, still buggy)\n"
 }
 
 # Set Temporary changes. Only OFF. You should manually update module
@@ -73,11 +88,28 @@ temporary_change(){
 change_fn(){
     #Set Paths and Variables based on Manufacturer
     set_variables;
-
-    
+ 
+    #Set VALUE
     if [ $# -ge 0 ] && [ "$1" == "Y" ]; then
         case $MNF in 
-        *"Apple"*) VALUE=1;;
+        *"Apple"*)
+            echo "Apple-like Device detected. You have 2 choices in fnmode."
+            echo -e "1. Fn Keys Last. \n2. Fn Keys First"
+            echo "More info: https://github.com/Type-Here/fn_lock_setting"
+            read -r -p "Choose 1 or 2? (Default: 1)" choice
+            case "$choice" in
+                2)
+                    echo "2. Fn Keys First choosen."
+                    VALUE=2;
+                ;;
+                
+                *)
+                    echo "1. Fn Keys Last choosen."
+                    VALUE=1;
+                ;;
+            esac
+        ;;
+        
         *) VALUE=Y;;
         esac
     else
@@ -87,6 +119,7 @@ change_fn(){
         esac    
     fi
 
+    #EXECUTE
     if [ -f /sys/module/$MNFCTR/parameters/$FNLOCK ]; then
         echo "Module Found. Checking for conf files..."
         
@@ -114,6 +147,7 @@ change_fn(){
             echo -e "$E UPDATED NOW $F"
             echo " PLEASE REBOOT. "
             exit 0;
+
         else
         # Creating a New Conf File
             echo "Configuration File NOT Found. Creating and Setting..."
@@ -158,7 +192,7 @@ elif [ "$1" == "-e" ] || [ "$1" == "--enable" ]; then
     change_fn Y;
 elif [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
     show_help;
-elif [ "$1" == "-t" ]; then
+elif [ "$1" == "-t" ] || [ "$1" == "--temp" ]; then
     temporary_change;
 else
     echo "Non valid Option.";
